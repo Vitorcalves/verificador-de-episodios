@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import requests
 import json
 
@@ -32,7 +33,7 @@ def adicionar_anime():
         ultimo_episodio = 0
     else:
         ultimo_episodio = int(ultimo_episodio)
-    id = len(store)
+    id = max([anime["id"] for anime in store], default=-1) + 1
     store.append({"id":id, "nome": nome, "api": api, "link": link, "ultimo_episodio": ultimo_episodio})
     escrever_dados(store)
 
@@ -164,22 +165,22 @@ def printar_banco():
         print(anime["id"], anime["nome"],anime["ultimo_episodio"], anime["api"], anime["link"])  
 
 def escrever_dados(store):
-    with open('store.json', 'w') as file:
+    with open('/home/vitor/ads/teste_py/store.json', 'w') as file:
         json.dump(store, file)
 
 def escrever_delete( dado ):
     deletados = ler_delete()
     deletados.append(dado)
-    with open('delete.json', 'w') as file:
+    with open('/home/vitor/ads/teste_py/delete.json', 'w') as file:
         json.dump(deletados, file)
 
 def ler_delete():
-    with open('delete.json', 'r') as file:
+    with open('/home/vitor/ads/teste_py/delete.json', 'r') as file:
         dados = json.load(file)
         return dados
 
 def ler_dados():
-    with open('store.json', 'r') as file:
+    with open('/home/vitor/ads/teste_py/store.json', 'r') as file:
         dados = json.load(file)
         return dados
 
