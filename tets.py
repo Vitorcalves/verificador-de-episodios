@@ -1,22 +1,8 @@
 #!/usr/bin/env python
 import requests
 import json
-
-def verificar_novos_episodios():
-    url = "https://apiv3-prd.anroll.net/animes/1522/episodes?page=1&order=desc"
-    response = requests.get(url)
-
-    # Verifica se a requisição foi bem-sucedida
-    if response.status_code == 200:
-        data = response.json()
-
-        # Itera sobre os episódios e imprime as informações
-        for episode in data['data']:
-            print(f"Episódio {episode['n_episodio']}: {episode['titulo_episodio']}")
-            print(f"Data de Lançamento: {episode['data_registro']}")
-            print("---")
-    else:
-        print("Falha na requisição")
+import uuid
+import subprocess
 
 def adicionar_anime():
     print("adicionar anime")
@@ -27,6 +13,12 @@ def adicionar_anime():
     api = input()
     print("digite o link do anime")
     link = input()
+    print("possibilidade player? 1 - sim, 2 - nao")
+    opcao = int(input())
+    if opcao == 1:
+        player = True
+    else:
+        player = False
     print("digite o numero do ultimo episodio ou deixe em branco e sera considerado 0")
     ultimo_episodio = input()
     if ultimo_episodio == "":
@@ -34,7 +26,7 @@ def adicionar_anime():
     else:
         ultimo_episodio = int(ultimo_episodio)
     id = max([anime["id"] for anime in store], default=-1) + 1
-    store.append({"id":id, "nome": nome, "api": api, "link": link, "ultimo_episodio": ultimo_episodio})
+    store.append({"id":id, "nome": nome, "api": api, "link": link, "ultimo_episodio": ultimo_episodio, "player": player})
     escrever_dados(store)
 
 def remover_anime():
@@ -98,16 +90,40 @@ def verificar_ep():
                     print(anime["link"] + episode["generate_id"] + "/")
                     novo_ep = True
                     print("---")
-                    print("deseja atualizar o ultimo episodio? 1 - sim,  2 - nao, 3 - parar")
-                    opcao = int(input())
-                    if opcao == 1:
-                        anime["ultimo_episodio"] = int(episode['n_episodio'])
-                        escrever_dados(store)
-                    elif opcao == 3:
-                        continuar_verificacao = False
-                        break
+                    if not anime["player"]:
+                        print("deseja atualizar o ultimo episodio? 0 - parar, 1 - sim,  2 - nao")
+                        opcao = int(input())
+                        if opcao == 1:
+                            anime["ultimo_episodio"] = int(episode['n_episodio'])
+                            escrever_dados(store)
+                        elif opcao == 0:
+                            continuar_verificacao = False
+                            break
+                        else:
+                            print("ultimo episodio nao atualizado")
                     else:
-                        print("ultimo episodio nao atualizado")
+                        print("deseja atualizar o ultimo episodio? 0 - parar, 1 - sim,  2 - nao, 3 - assistir")
+                        opcao = int(input())
+                        if opcao == 1:
+                            anime["ultimo_episodio"] = int(episode['n_episodio'])
+                            escrever_dados(store)
+                        elif opcao == 0:
+                            continuar_verificacao = False
+                            break
+                        elif opcao == 3:
+                            heder = {'Referer': 'https://www.anroll.net/'}
+                            bJson = requests.get(f"https://cdn-zenitsu-gamabunta.b-cdn.net/cf/hls/animes/{episode['anime']['slug_serie']}/{episode['n_episodio']}.mp4/media-1/stream.m3u8", headers=heder)
+                            if bJson.status_code == 200:
+                                data = bJson.text
+                                caminho = '/tmp/' + str(uuid.uuid4()) + '.m3u8'
+                                with open(caminho, 'w') as file:
+                                    file.write(data)  
+                                anime["ultimo_episodio"] = int(episode['n_episodio'])
+                                escrever_dados(store)                    
+                                subprocess.run(["vlc", caminho])
+                            
+                        else:
+                            print("ultimo episodio nao atualizado")
             if not novo_ep:
                 print("sem novos episodios")
         else:
@@ -152,7 +168,26 @@ def editar_anime():
             anime["ultimo_episodio"] = ultimo_episodio
             escrever_dados(store)
             break
-    
+
+def lista_ep_anime():
+    store = ler_dados()
+    printar_dados()
+    print("digite o id do anime")
+    id = int(input())
+    for anime in store:
+        if anime["id"] == id:
+            response = requests.get(anime["api"])
+            if response.status_code == 200:
+                data = response.json()
+                print("****************************")
+                print(anime["nome"])
+                print("****************************")
+                for episode in data['data']:
+                    print(f"Episódio {episode['n_episodio']}: {episode['titulo_episodio']}")
+                    print(f"Data de Lançamento: {episode['data_registro']}")
+                    print(anime["link"] + episode["generate_id"] + "/")
+                    print("---")
+                
 
 def printar_dados():
     store = ler_dados()
@@ -192,13 +227,13 @@ def opcoes():
     print("4 - lista episodios")
     print("5 - editar ep")
     print("6 - printar banco")
-    print("7 - sair")
-
+    print("7 - lista todos episodios anime")
+    print("8 - sair")
 
 # Chama a função
 opcoes()
 opcao = int(input("opcao: "))
-while opcao != 7:
+while opcao != 8:
     if opcao == 1:
         adicionar_anime()
     elif opcao == 2:
@@ -211,6 +246,8 @@ while opcao != 7:
         editar_anime()
     elif opcao == 6:
         printar_banco()
+    elif opcao == 7:
+        lista_ep_anime()
     else:
         print("opcao invalida")
     opcoes()
