@@ -3,6 +3,7 @@ import requests
 import json
 import uuid
 import subprocess
+import os
 
 def adicionar_anime():
     print("adicionar anime")
@@ -187,7 +188,81 @@ def lista_ep_anime():
                     print(f"Data de Lançamento: {episode['data_registro']}")
                     print(anime["link"] + episode["generate_id"] + "/")
                     print("---")
-                
+
+def dowload_ep():
+    store = ler_dados()
+    for anime in store:
+        response = requests.get(anime["api"])
+        novo_ep = False
+        if response.status_code == 200:
+            data = response.json()
+            print("****************************")
+            print(anime["nome"])
+            print("****************************")
+            for episode in data['data']:
+                if int(episode['n_episodio']) > anime["ultimo_episodio"]:
+                    print(f"Episódio {episode['n_episodio']}: {episode['titulo_episodio']}")
+                    print(f"Data de Lançamento: {episode['data_registro']}")
+                    novo_ep = True
+                    dowload = ler_dowloads()
+                    heder = {'Referer': 'https://www.anroll.net/'}
+                    bJson = requests.get(f"https://cdn-zenitsu-gamabunta.b-cdn.net/cf/hls/animes/{episode['anime']['slug_serie']}/{episode['n_episodio']}.mp4/media-1/stream.m3u8", headers=heder)
+                    if bJson.status_code == 200:
+                        data = bJson.text
+                        id = str(uuid.uuid4())
+                        caminho = '/tmp/' + id + '.m3u8'
+                        caminho_mp4 = '/tmp/' + id + '.mp4'
+                        with open(caminho, 'w') as file:
+                            file.write(data)
+                        comando_ffmpeg = ["ffmpeg", "-protocol_whitelist", "file,https,tcp,tls,crypto", "-i", caminho, "-c", "copy", caminho_mp4]
+                        subprocess.run(comando_ffmpeg)
+                        for dowload in dowloa:
+                            if dowloa["anime"] == anime["nome"] and dowloa["episodio"] == episode['n_episodio']:
+                                dowloa.remove(dowloa)
+                        dowload.append({"id": id, "anime": anime["nome"], "episodio": episode['n_episodio'], "titulo": episode['titulo_episodio'], "caminho": caminho_mp4})
+                        escrever_dowloads(dowload)
+                    else:
+                        print("falha no dowload")
+        else:
+            print("##############################")
+            print("Falha na requisição")
+            print("##############################")
+
+def listar_dowloads():
+    dowloads = ler_dowloads()
+    for dowload in dowloads:
+        print(dowload["id"])
+        print(dowload["anime"])
+        print(dowload["episodio"])
+        print(dowload["titulo"])
+        print("********************")
+    print("digite o id do dowload")
+    id = input()
+    for dowload in dowloads:
+        if dowload["id"] == id:
+            print("deseja assistir? 1 - sim, 2 - nao")
+            opcao = int(input())
+            if opcao == 1:
+                subprocess.run(["vlc", dowload["caminho"]])
+                store = ler_dados()
+                for anime in store:
+                    if anime["nome"] == dowload["anime"]:
+                        anime["ultimo_episodio"] = int(dowload["episodio"])
+                        escrever_dados(store)
+                        dowloads.remove(dowload)
+                        escrever_dowloads(dowloads)
+            else:
+                print("dowload nao assistido")
+            break
+
+def ler_dowloads():
+       with open('/home/vitor/ads/teste_py/dowloads.json', 'r') as file:
+        dados = json.load(file)
+        return dados 
+
+def escrever_dowloads(store):
+    with open('/home/vitor/ads/teste_py/dowloads.json', 'w') as file:
+        json.dump(store, file)
 
 def printar_dados():
     store = ler_dados()
@@ -225,15 +300,19 @@ def opcoes():
     print("2 - remover anime")
     print("3 - verificar novos episodios")
     print("4 - lista episodios")
-    print("5 - editar ep")
-    print("6 - printar banco")
-    print("7 - lista todos episodios anime")
-    print("8 - sair")
+    print("5 - baixar episodio")
+    print("6 - editar ep")
+    print("7 - printar banco")
+    print("8 - lista todos episodios anime")
+    print("9 - visualizar dowloads")
+    print("0 - sair")
+
+
 
 # Chama a função
 opcoes()
 opcao = int(input("opcao: "))
-while opcao != 8:
+while opcao != 0:
     if opcao == 1:
         adicionar_anime()
     elif opcao == 2:
@@ -243,11 +322,15 @@ while opcao != 8:
     elif opcao == 4:
         lista_ep()
     elif opcao == 5:
-        editar_anime()
+        dowload_ep()
     elif opcao == 6:
-        printar_banco()
+        editar_anime()
     elif opcao == 7:
+        printar_banco()
+    elif opcao == 8:
         lista_ep_anime()
+    elif opcao == 9:
+        listar_dowloads()
     else:
         print("opcao invalida")
     opcoes()
