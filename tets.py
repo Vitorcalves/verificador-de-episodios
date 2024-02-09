@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from operacoes_anime import adicionar_anime, remover_anime, verificar_ep, lista_ep, dowload_ep, editar_anime, lista_ep_anime, listar_dowloads, adicionar_anime_db, remover_anime_db, listar_ep_anime_db, dowload_novos_ep_db, listar_dowloads_db, verificar_ep_db, listar_novos_ep_db
+from operacoes_anime import  adicionar_anime_db, remover_anime_db, listar_ep_anime_db, dowload_novos_ep_db, listar_dowloads_db, verificar_ep_db, listar_novos_ep_db, editar_anime_db
 from db import printar_banco
 
 
@@ -12,9 +12,8 @@ def opcoes():
     print("4 - lista episodios")
     print("5 - baixar episodio")
     print("6 - editar ep")
-    print("7 - printar banco")
-    print("8 - lista todos episodios anime")
-    print("9 - visualizar dowloads")
+    print("7 - lista todos episodios anime")
+    print("8 - visualizar dowloads")
     print("0 - sair")
 
 
@@ -35,12 +34,10 @@ while opcao != 0:
     elif opcao == 5:
         dowload_novos_ep_db()
     elif opcao == 6:
-        editar_anime()
+        editar_anime_db()
     elif opcao == 7:
-        printar_banco()
-    elif opcao == 8:
         listar_ep_anime_db()
-    elif opcao == 9:
+    elif opcao == 8:
         listar_dowloads_db()
     else:
         print("opcao invalida")

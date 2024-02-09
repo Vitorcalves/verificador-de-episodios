@@ -330,6 +330,26 @@ def listar_novos_ep_db():
                     print("##############################")
     conexao.close()
 
+def editar_anime_db():
+    conexao = conectar_db()
+    if conexao == None:
+        print("falha na conexao com banco")
+        return
+    with conexao:
+        with conexao.cursor() as cursor:
+            print("editar anime")
+            cursor.execute("SELECT id_anime, name_anime FROM anime WHERE ativo = true")
+            animes = cursor.fetchall()
+            for anime in animes:
+                print(f'ID = {anime[0]} Nome {anime[1]} ultimo episodio {anime[5]}')
+            print("digite o id do anime")
+            id = int(input())
+            print("digite o novo numero do ultimo episodio")
+            ultimo_episodio = int(input())
+            cursor.execute("UPDATE anime SET ultimo_ep = %s WHERE id_anime = %s", (ultimo_episodio, id))
+
+    conexao.close()
+
 def migrar_db():
     store = ler_dados()
     for anime in store:
