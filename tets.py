@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from operacoes_anime import  adicionar_anime_db, remover_anime_db, listar_ep_anime_db, dowload_novos_ep_db, listar_dowloads_db, verificar_ep_db, listar_novos_ep_db, editar_anime_db, criar_backup, printar_banco_db
-from db import printar_banco
 
 
 def opcoes():
@@ -27,8 +26,12 @@ def opcoes_gerenciar_animes():
 
 def main():
     opcoes()
-    opcao = int(input("opcao: "))
-    while opcao != 0:
+    while True:
+        try:
+            opcao = int(input("opcao: "))
+        except:
+            print("opcao invalida")
+            continue
         if opcao == 1:
             gerenciar_animes()
             break
@@ -44,17 +47,21 @@ def main():
             listar_dowloads_db()
         elif opcao == 7:
             criar_backup()
-        else:
-            print("opcao invalida")
+        elif opcao == 0:
+            break
         opcoes()
         opcao = int(input("opcao: "))
 
 def gerenciar_animes():
     opcao = 1
-    while opcao != 0:
+    while True:
         printar_banco_db()
         opcoes_gerenciar_animes()
-        opcao = int(input("opcao: "))
+        try:
+            opcao = int(input("opcao: "))
+        except:
+            print("opcao invalida")
+            continue
         if opcao == 1:
             adicionar_anime_db()
         elif opcao == 2:

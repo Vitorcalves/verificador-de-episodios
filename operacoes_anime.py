@@ -5,7 +5,7 @@ import os
 from psycopg2.extras import RealDictCursor
 import psycopg2
 
-from db import ler_dados, escrever_dados, escrever_delete, ler_dowloads, escrever_dowloads, ler_delete, printar_dados, conectar_db
+from db import ler_dados, escrever_dados, conectar_db
 
 def adicionar_anime_db():
     conexao = conectar_db()
