@@ -42,8 +42,6 @@ def remover_anime_db():
             print("remover anime")
             cursor.execute("SELECT id_anime, name_anime FROM anime WHERE ativo = true")
             animes = cursor.fetchall()
-            for anime in animes:
-                print(f'ID = {anime[0]} Nome {anime[1]}')
             print("digite o id do anime")
             id = int(input())
             cursor.execute("UPDATE anime SET ativo = false WHERE id_anime = %s", (id,))
@@ -60,8 +58,6 @@ def editar_anime_db():
             print("editar anime")
             cursor.execute("SELECT id_anime, name_anime FROM anime WHERE ativo = true")
             animes = cursor.fetchall()
-            for anime in animes:
-                print(f'ID = {anime[0]} Nome {anime[1]}')
             print("digite o id do anime")
             id = int(input())
             print("digite o novo numero do ultimo episodio")
@@ -167,7 +163,7 @@ def dowload_ep_db(link_dowload, id_anime, numero_ep, titulo_ep):
         data = bJson.text
         id = str(uuid.uuid4())
         caminho = '/tmp/' + id + '.m3u8'
-        caminho_mp4 = '/tmp/' + id + '.mp4'
+        caminho_mp4 = '/home/vitor/dowloads_animes/' + id + '.mp4'
         with open(caminho, 'w') as file:
             file.write(data)
         comando_ffmpeg = ["ffmpeg", "-protocol_whitelist", "file,https,tcp,tls,crypto", "-i", caminho, "-c", "copy", caminho_mp4]
@@ -239,18 +235,19 @@ def listar_dowloads_db():
                 print("********************")
             print("digite o id do dowload")
             id = input()
-            for dowload in dowloads:
-                if dowload["id_dowloads"] == id:
-                    print("deseja assistir? 1 - sim, 2 - nao")
-                    opcao = int(input())
-                    if opcao == 1:
-                        caminho = "/tmp/" + dowload["id_dowloads"] + '.mp4'
+            print("deseja assistir ou apagar? 1 - assistir, 2 - apagar 0 - cancelar")
+            opcao = int(input())
+            if opcao == 1:
+                for dowload in dowloads:
+                    if dowload["id_dowloads"] == id:
+                        caminho = '/home/vitor/dowloads_animes/' + id + '.mp4'
                         subprocess.run(["vlc", caminho])
                         atualizar_ep_anime_db(dowload["id_anime"], dowload["numero_ep"])
-                        cursor.execute("DELETE FROM dowloads WHERE id_dowloads = %s", (id,))
-                    else:
-                        print("dowload nao assistido")
-                    break
+                        cursor.execute("UPDATE dowloads SET assistido = true WHERE id_dowloads = %s", (id,))
+            elif opcao == 2:
+                apagar_dowloads(id)
+            else:
+                print("cancelado")
     conexao.close()
 
 def verificar_ep_db():
@@ -308,26 +305,29 @@ def listar_novos_ep_db():
             cursor.execute("SELECT * FROM anime a JOIN plataforma p ON a.plataforma = p.id_plataforma WHERE a.ativo = true")
             animes = cursor.fetchall()
             for anime in animes:
-                response = requests.get(anime["link_api"].replace("{id_externo}", str(anime["id_externo"])))
-                novo_ep = False
-                if response.status_code == 200:
-                    data = response.json()
-                    print("****************************")
-                    print(anime["name_anime"])
-                    print("****************************")
-                    for episode in data['data']:
-                        if int(episode['n_episodio']) > int(anime["ultimo_ep"]):
-                            print(f"Episódio {episode['n_episodio']}: {episode['titulo_episodio']}")
-                            print(f"Data de Lançamento: {episode['data_registro']}")
-                            print(anime["link_plataforma"] + episode["generate_id"] + "/")
-                            novo_ep = True
-                            print("---")
-                    if not novo_ep:
-                        print("sem novos episodios")
-                else:
-                    print("##############################")
-                    print("Falha na requisição")
-                    print("##############################")
+                try:
+                    response = requests.get(anime["link_api"].replace("{id_externo}", str(anime["id_externo"])), timeout=10)
+                    novo_ep = False
+                    if response.status_code == 200:
+                        data = response.json()
+                        print("****************************")
+                        print(anime["name_anime"])
+                        print("****************************")
+                        for episode in data['data']:
+                            if int(episode['n_episodio']) > int(anime["ultimo_ep"]):
+                                print(f"Episódio {episode['n_episodio']}: {episode['titulo_episodio']}")
+                                print(f"Data de Lançamento: {episode['data_registro']}")
+                                print(anime["link_plataforma"] + episode["generate_id"] + "/")
+                                novo_ep = True
+                                print("---")
+                        if not novo_ep:
+                            print("sem novos episodios")
+                    else:
+                        print("##############################")
+                        print("Falha na requisição")
+                        print("##############################")
+                except requests.exceptions.Timeout:
+                     print(f"Timeout na requisição para {anime['name_anime']}")
     conexao.close()
 
 def editar_anime_db():
@@ -383,6 +383,68 @@ def apagar_animes():
                 print(f"Ocorreu um erro ao apagar animes: {e}")
     conexao.close()
 
+def apagar_dowloads(id_dowloads):
+    conexao = conectar_db()
+    if conexao is None:
+        print("Falha no banco")
+        return
+    with conexao:
+        with conexao.cursor() as cursor:
+            try:
+                os.remove(f'/home/vitor/dowloads_animes/{id_dowloads}.mp4')
+            except Exception as e:
+                print(f"Ocorreu um erro ao apagar o arquivo: {e}")
+            try:
+                cursor.execute("DELETE FROM dowloads WHERE id_dowloads = %s", (id_dowloads,))
+            except Exception as e:
+                print(f"Ocorreu um erro ao apagar registro no db: {e}")
+    conexao.close()
+
+def printar_banco_db():
+    conexao = conectar_db()
+    if conexao is None:
+        print("Falha na conexão com o banco")
+        return
+    with conexao:
+        with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute("SELECT * FROM anime JOIN plataforma ON anime.plataforma = plataforma.id_plataforma WHERE ativo = true")
+            animes = cursor.fetchall()
+            for anime in animes:
+                print(f"ID: {anime['id_anime']}, Nome: {anime['name_anime']}, Ultimo Episodio: {anime['ultimo_ep']}, Plataforma: {anime['name_plataforma']}")
+    conexao.close()
+
+
+def criar_backup():
+    conexao = conectar_db()
+    if conexao is None:
+        print("Falha na conexão")
+        return
+    with conexao:
+        with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
+            try:
+                # Construa e execute a instrução SQL para deletar as linhas
+                cursor.execute(
+                    "SELECT * FROM anime JOIN plataforma ON anime.plataforma = plataforma.id_plataforma WHERE ativo = true"
+                )
+                animes = cursor.fetchall()
+                stor=[]
+                for anime in animes:
+                    stor.append({
+                        "id": anime["id_anime"],
+                        "nome": anime["name_anime"],
+                        "ultimo_episodio": anime["ultimo_ep"],
+                        "api": anime["link_api"],
+                        "link": anime["link_plataforma"],
+                        "download": anime["link_dowloads"],
+                        "id_externo": anime["id_externo"],
+                        "slug": anime["slug_serie"]
+                    })
+                print(stor)
+                escrever_dados(stor)
+                print("Backup criado com sucesso.")
+            except Exception as e:
+                print(f"Ocorreu um erro ao criar o backup: {e}")
+    conexao.close()
 
 
 
