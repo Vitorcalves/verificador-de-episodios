@@ -1,11 +1,10 @@
 from dowload import dowload_ep_db
+from acessorios import printar_banco_db
 import requests
 import uuid
 import subprocess
 import os
 from psycopg2.extras import RealDictCursor
-import psycopg2
-import threading
 import re
 
 from db import ler_dados, escrever_dados, conectar_db

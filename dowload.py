@@ -1,3 +1,16 @@
+from db import conectar_db
+from psycopg2.extras import RealDictCursor
+import requests
+import uuid
+import subprocess
+import os
+import threading
+import re
+
+def atualizar(output):
+    if re.match(r'^size=', output):
+        print(output.strip())
+
 def dowload_ep_db(link_dowload, id_anime, numero_ep, titulo_ep, callback_progresso=None):
     try:
         heder = {'Referer': 'https://www.anroll.net/'}
@@ -11,15 +24,15 @@ def dowload_ep_db(link_dowload, id_anime, numero_ep, titulo_ep, callback_progres
                 file.write(data)
             comando_ffmpeg = ["ffmpeg", "-protocol_whitelist", "file,https,tcp,tls,crypto", "-i", caminho, "-c", "copy", caminho_mp4]
             print(f'dowload iniciado {id_anime}')
-            processo = subprocess.Popen(comando_ffmpeg, stdout=subprocess.PIPE, universal_newlines=True)
+            processo = subprocess.Popen(comando_ffmpeg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             # subprocess.run(comando_ffmpeg, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            output = processo.stderr.readline()
             while True:
-                output = processo.stdout.readline()
+                output = processo.stderr.readline()
                 if output == '' and processo.poll() is not None:
                     break
-                if output:
-                    atualizar(output.strip())
+                if callback_progresso and re.match(r'^size=', output):
+                    # Chama o callback com a mensagem de progresso formatada
+                    callback_progresso(id_anime, numero_ep, output.strip())
             
             rc = processo.poll()
             print(rc)        
@@ -45,10 +58,10 @@ def dowloads_asincronos(dowloads):
     threads = []
 
     def atualiza_progresso(id_anime, numero_ep, progresso):
-        print(f"Progresso do download: Anime {id_anime} Episódio {numero_ep} - {progresso}% completo")
+        print(f"Progresso do download: Anime {id_anime} Episódio {numero_ep} - {progresso}")
 
     for episodio in dowloads:
-        thread = threading.Thread(target=dowload_ep_db, args=(episodio['link_dowload'], episodio['id_anime'], episodio['numero_ep'], episodio['titulo']))
+        thread = threading.Thread(target=dowload_ep_db, args=(episodio['link_dowload'], episodio['id_anime'], episodio['numero_ep'], episodio['titulo'], atualiza_progresso))
         thread.start()
         threads.append(thread)
 
@@ -80,7 +93,6 @@ def dowload_novos_ep_db():
                             print(anime["link_plataforma"] + episode["generate_id"] + "/")
                             print("---")
                             ep_dowload.append({'link_dowload': anime["link_dowloads"].replace("{'slug_serie'}", anime["slug_serie"]).replace("{'n_episodio'}", episode['n_episodio']), 'id_anime': anime["id_anime"], 'numero_ep': episode['n_episodio'], 'titulo': episode['titulo_episodio']})
-                            # dowload_ep_db(anime["link_dowloads"].replace("{'slug_serie'}", anime["slug_serie"]).replace("{'n_episodio'}", episode['n_episodio']), anime["id_anime"], episode['n_episodio'], episode['titulo_episodio'])
                 else:
                     print("##############################")
                     print("Falha na requisição")
@@ -89,6 +101,3 @@ def dowload_novos_ep_db():
                 dowloads_asincronos(ep_dowload)
                 print("dowloads realizados")
     conexao.close()
-
-def atualizar(progresso):
-    print('funcionou')

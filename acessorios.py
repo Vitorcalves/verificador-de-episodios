@@ -1,3 +1,5 @@
+from db import conectar_db
+from psycopg2.extras import RealDictCursor
 def migrar_db():
     store = ler_dados()
     for anime in store:
