@@ -1,3 +1,4 @@
+from dowload import dowload_ep_db
 import requests
 import uuid
 import subprocess
@@ -5,6 +6,7 @@ import os
 from psycopg2.extras import RealDictCursor
 import psycopg2
 import threading
+import re
 
 from db import ler_dados, escrever_dados, conectar_db
 
@@ -46,24 +48,6 @@ def remover_anime_db():
             print("digite o id do anime")
             id = int(input())
             cursor.execute("UPDATE anime SET ativo = false WHERE id_anime = %s", (id,))
-
-    conexao.close()
-
-def editar_anime_db():
-    conexao = conectar_db()
-    if conexao == None:
-        print("falha na conexao com banco")
-        return
-    with conexao:
-        with conexao.cursor() as cursor:
-            print("editar anime")
-            cursor.execute("SELECT id_anime, name_anime FROM anime WHERE ativo = true")
-            animes = cursor.fetchall()
-            print("digite o id do anime")
-            id = int(input())
-            print("digite o novo numero do ultimo episodio")
-            ultimo_episodio = int(input())
-            cursor.execute("UPDATE anime SET ultimo_ep = %s WHERE id_anime = %s", (ultimo_episodio, id))
 
     conexao.close()
 
@@ -119,7 +103,6 @@ def listar_ep_anime_db():
                         print("##############################")
 
                     break
-            
 
     conexao.close()
 
@@ -136,8 +119,7 @@ def assistir_ep_anime_db(link_dowload, numero_ep, id_anime):
         subprocess.run(["vlc", caminho])
         atualizar_ep_anime_db(id_anime, numero_ep)
     else:
-        print("falha na conexao")
-        
+        print("falha na conexao")     
 
 def atualizar_ep_anime_db(id_anime, ultimo_episodio):
     if len(str(ultimo_episodio)) < 2:
@@ -155,91 +137,6 @@ def atualizar_ep_anime_db(id_anime, ultimo_episodio):
             cursor.execute("UPDATE anime SET ultimo_ep = %s WHERE id_anime = %s", (ultimo_episodio, id_anime))
     conexao.close()
     print("ultimo episodio atualizado")
-
-
-def dowload_ep_db(link_dowload, id_anime, numero_ep, titulo_ep, callback_progresso=None):
-    try:
-        heder = {'Referer': 'https://www.anroll.net/'}
-        bJson = requests.get(link_dowload, headers=heder)
-        if bJson.status_code == 200:
-            data = bJson.text
-            id = str(uuid.uuid4())
-            caminho = '/tmp/' + id + '.m3u8'
-            caminho_mp4 = '/home/vitor/dowloads_animes/' + id + '.mp4'
-            with open(caminho, 'w') as file:
-                file.write(data)
-            comando_ffmpeg = ["ffmpeg", "-protocol_whitelist", "file,https,tcp,tls,crypto", "-i", caminho, "-c", "copy", caminho_mp4]
-            print(f'dowload iniciado {id_anime}')
-            subprocess.run(comando_ffmpeg, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            if callback_progresso:
-                callback_progresso(id_anime, numero_ep, 100)
-            conexao = conectar_db()
-            if conexao == None:
-                print("falha na conexao com banco")
-                return
-            with conexao:
-                with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
-                    cursor.execute("SELECT * FROM dowloads WHERE id_anime = %s AND numero_ep = %s", (id_anime, numero_ep)) 
-                    dowload = cursor.fetchall()
-                    if len(dowload) > 0:
-                        cursor.execute("DELETE FROM dowloads WHERE id_anime = %s AND numero_ep = %s", (id_anime, numero_ep))
-                        cursor.execute("INSERT INTO dowloads (id_anime, numero_ep, titulo_ep, id_dowloads) VALUES (%s, %s, %s, %s)", (id_anime, numero_ep, titulo_ep, id))
-                    else:
-                        cursor.execute("INSERT INTO dowloads (id_anime, numero_ep, titulo_ep, id_dowloads) VALUES (%s, %s, %s, %s)", (id_anime, numero_ep, titulo_ep, id))
-            conexao.close()
-    except Exception as e:
-        print(f"falha no dowload: {e}")
-
-            
-
-def dowload_novos_ep_db():
-    conexao = conectar_db()
-    if conexao == None:
-        print("falha na conexao com banco")
-        return
-    with conexao:
-        with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute("SELECT * FROM anime a JOIN plataforma p ON a.plataforma = p.id_plataforma WHERE a.ativo = true")
-            animes = cursor.fetchall()
-            ep_dowload = []
-            for anime in animes:
-                url_api = anime["link_api"].replace("{id_externo}", str(anime["id_externo"]))
-                response = requests.get(url_api)
-                if response.status_code == 200:
-                    data = response.json()
-                    print("****************************")
-                    print(anime["name_anime"])
-                    print("****************************")
-                    for episode in data['data']:
-                        if int(episode['n_episodio']) > int(anime["ultimo_ep"]):
-                            print(f"Episódio {episode['n_episodio']}: {episode['titulo_episodio']}")
-                            print(f"Data de Lançamento: {episode['data_registro']}")
-                            print(anime["link_plataforma"] + episode["generate_id"] + "/")
-                            print("---")
-                            ep_dowload.append({'link_dowload': anime["link_dowloads"].replace("{'slug_serie'}", anime["slug_serie"]).replace("{'n_episodio'}", episode['n_episodio']), 'id_anime': anime["id_anime"], 'numero_ep': episode['n_episodio'], 'titulo': episode['titulo_episodio']})
-                            # dowload_ep_db(anime["link_dowloads"].replace("{'slug_serie'}", anime["slug_serie"]).replace("{'n_episodio'}", episode['n_episodio']), anime["id_anime"], episode['n_episodio'], episode['titulo_episodio'])
-                else:
-                    print("##############################")
-                    print("Falha na requisição")
-                    print("##############################")
-            if len(ep_dowload) > 0:
-                dowloads_asincronos(ep_dowload)
-                print("dowloads realizados")
-    conexao.close()
-
-def dowloads_asincronos(dowloads):
-    threads = []
-
-    def atualiza_progresso(id_anime, numero_ep, progresso):
-        print(f"Progresso do download: Anime {id_anime} Episódio {numero_ep} - {progresso}% completo")
-
-    for episodio in dowloads:
-        thread = threading.Thread(target=dowload_ep_db, args=(episodio['link_dowload'], episodio['id_anime'], episodio['numero_ep'], episodio['titulo']))
-        thread.start()
-        threads.append(thread)
-
-    for thread in threads:
-        thread.join()
 
 def listar_dowloads_db():
     conexao = conectar_db()
@@ -362,119 +259,14 @@ def editar_anime_db():
     with conexao:
         with conexao.cursor() as cursor:
             print("editar anime")
-            cursor.execute("SELECT id_anime, name_anime FROM anime WHERE ativo = true")
+            cursor.execute("SELECT id_anime, name_anime, ultimo_ep  FROM anime WHERE ativo = true")
             animes = cursor.fetchall()
             for anime in animes:
-                print(f'ID = {anime[0]} Nome {anime[1]} ultimo episodio {anime[5]}')
+                print(f'ID = {anime[0]} Nome {anime[1]} ultimo episodio {anime[2]}')
             print("digite o id do anime")
             id = int(input())
             print("digite o novo numero do ultimo episodio")
             ultimo_episodio = int(input())
-            cursor.execute("UPDATE anime SET ultimo_ep = %s WHERE id_anime = %s", (ultimo_episodio, id))
+            atualizar_ep_anime_db(id, ultimo_episodio)
 
     conexao.close()
-
-def migrar_db():
-    store = ler_dados()
-    for anime in store:
-        conexao = conectar_db()
-        if conexao == None:
-            print("falha na conexao")
-            return
-        with conexao:
-            with conexao.cursor() as cursor:
-                cursor.execute("INSERT INTO anime (name_anime, ultimo_ep, plataforma, id_externo, slug_serie) VALUES (%s, %s, %s, %s, %s)", (anime["nome"], anime["ultimo_episodio"], 1, anime["id_externo"], anime["slug"]))
-        conexao.close()
-    print("migracao concluida")
-
-def apagar_animes():
-    id_inicial = 6
-    id_final = 10
-    conexao = conectar_db()
-    if conexao is None:
-        print("Falha na conexão")
-        return
-    with conexao:
-        with conexao.cursor() as cursor:
-            try:
-                # Construa e execute a instrução SQL para deletar as linhas
-                cursor.execute(
-                    "DELETE FROM anime WHERE id_anime >= %s AND id_anime <= %s",
-                    (id_inicial, id_final)
-                )
-                print("Animes apagados com sucesso.")
-            except Exception as e:
-                print(f"Ocorreu um erro ao apagar animes: {e}")
-    conexao.close()
-
-def apagar_dowloads(id_dowloads):
-    conexao = conectar_db()
-    if conexao is None:
-        print("Falha no banco")
-        return
-    with conexao:
-        with conexao.cursor() as cursor:
-            try:
-                os.remove(f'/home/vitor/dowloads_animes/{id_dowloads}.mp4')
-            except Exception as e:
-                print(f"Ocorreu um erro ao apagar o arquivo: {e}")
-            try:
-                cursor.execute("DELETE FROM dowloads WHERE id_dowloads = %s", (id_dowloads,))
-            except Exception as e:
-                print(f"Ocorreu um erro ao apagar registro no db: {e}")
-    conexao.close()
-
-def printar_banco_db():
-    conexao = conectar_db()
-    if conexao is None:
-        print("Falha na conexão com o banco")
-        return
-    with conexao:
-        with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute("SELECT * FROM anime JOIN plataforma ON anime.plataforma = plataforma.id_plataforma WHERE ativo = true")
-            animes = cursor.fetchall()
-            for anime in animes:
-                print(f"ID: {anime['id_anime']}, Nome: {anime['name_anime']}, Ultimo Episodio: {anime['ultimo_ep']}, Plataforma: {anime['name_plataforma']}")
-    conexao.close()
-
-
-def criar_backup():
-    conexao = conectar_db()
-    if conexao is None:
-        print("Falha na conexão")
-        return
-    with conexao:
-        with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
-            try:
-                # Construa e execute a instrução SQL para deletar as linhas
-                cursor.execute(
-                    "SELECT * FROM anime JOIN plataforma ON anime.plataforma = plataforma.id_plataforma WHERE ativo = true"
-                )
-                animes = cursor.fetchall()
-                stor=[]
-                for anime in animes:
-                    stor.append({
-                        "id": anime["id_anime"],
-                        "nome": anime["name_anime"],
-                        "ultimo_episodio": anime["ultimo_ep"],
-                        "api": anime["link_api"],
-                        "link": anime["link_plataforma"],
-                        "download": anime["link_dowloads"],
-                        "id_externo": anime["id_externo"],
-                        "slug": anime["slug_serie"]
-                    })
-                print(stor)
-                escrever_dados(stor)
-                print("Backup criado com sucesso.")
-            except Exception as e:
-                print(f"Ocorreu um erro ao criar o backup: {e}")
-    conexao.close()
-
-
-
-
-
-
-
-
-        

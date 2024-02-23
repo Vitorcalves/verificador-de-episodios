@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-
-from operacoes_anime import  adicionar_anime_db, remover_anime_db, listar_ep_anime_db, dowload_novos_ep_db, listar_dowloads_db, verificar_ep_db, listar_novos_ep_db, editar_anime_db, criar_backup, printar_banco_db
+from dowload import dowload_novos_ep_db
+from acessorios import criar_backup, printar_banco_db
+from operacoes_anime import  adicionar_anime_db, remover_anime_db, listar_ep_anime_db, listar_dowloads_db, verificar_ep_db, listar_novos_ep_db, editar_anime_db
 
 
 def opcoes():
