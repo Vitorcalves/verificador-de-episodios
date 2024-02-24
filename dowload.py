@@ -1,4 +1,4 @@
-from db import conectar_db
+from db import conectar_db, listar_todos_dowloads
 from psycopg2.extras import RealDictCursor
 import requests
 import uuid
@@ -6,10 +6,6 @@ import subprocess
 import os
 import threading
 import re
-
-def atualizar(output):
-    if re.match(r'^size=', output):
-        print(output.strip())
 
 def dowload_ep_db(link_dowload, id_anime, numero_ep, titulo_ep, callback_progresso=None):
     try:
@@ -25,7 +21,6 @@ def dowload_ep_db(link_dowload, id_anime, numero_ep, titulo_ep, callback_progres
             comando_ffmpeg = ["ffmpeg", "-protocol_whitelist", "file,https,tcp,tls,crypto", "-i", caminho, "-c", "copy", caminho_mp4]
             print(f'dowload iniciado {id_anime}')
             processo = subprocess.Popen(comando_ffmpeg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-            # subprocess.run(comando_ffmpeg, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             while True:
                 output = processo.stderr.readline()
                 if output == '' and processo.poll() is not None:
@@ -59,7 +54,16 @@ def dowloads_asincronos(dowloads):
 
     def atualiza_progresso(id_anime, numero_ep, progresso):
         print(f"Progresso do download: Anime {id_anime} Episódio {numero_ep} - {progresso}")
+    dowloads_db = listar_todos_dowloads()
 
+    if len(dowloads_db) > 0:
+        for dowload in dowloads_db:
+            for ep in dowloads:
+                if dowload['id_anime'] == ep['id_anime'] and dowload['numero_ep'] == ep['numero_ep']:
+                    dowloads.remove(ep)
+                    break
+    if len(dowloads) == 0:
+        return
     for episodio in dowloads:
         thread = threading.Thread(target=dowload_ep_db, args=(episodio['link_dowload'], episodio['id_anime'], episodio['numero_ep'], episodio['titulo'], atualiza_progresso))
         thread.start()

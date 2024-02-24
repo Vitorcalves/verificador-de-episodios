@@ -33,23 +33,6 @@ def apagar_animes():
                 print(f"Ocorreu um erro ao apagar animes: {e}")
     conexao.close()
 
-def apagar_dowloads(id_dowloads):
-    conexao = conectar_db()
-    if conexao is None:
-        print("Falha no banco")
-        return
-    with conexao:
-        with conexao.cursor() as cursor:
-            try:
-                os.remove(f'/home/vitor/dowloads_animes/{id_dowloads}.mp4')
-            except Exception as e:
-                print(f"Ocorreu um erro ao apagar o arquivo: {e}")
-            try:
-                cursor.execute("DELETE FROM dowloads WHERE id_dowloads = %s", (id_dowloads,))
-            except Exception as e:
-                print(f"Ocorreu um erro ao apagar registro no db: {e}")
-    conexao.close()
-
 def printar_banco_db():
     conexao = conectar_db()
     if conexao is None:

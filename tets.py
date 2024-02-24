@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from dowload import dowload_novos_ep_db
 from acessorios import criar_backup, printar_banco_db
-from operacoes_anime import  adicionar_anime_db, remover_anime_db, listar_ep_anime_db, listar_dowloads_db, verificar_ep_db, listar_novos_ep_db, editar_anime_db
+from operacoes_anime import  adicionar_anime, remover_anime_db, listar_ep_anime_db, listar_dowloads, verificar_ep_db, listar_novos_ep_db, editar_anime_db
 
 
 def opcoes():
@@ -22,58 +22,59 @@ def opcoes_gerenciar_animes():
     print("3 - editar anime")
     print("0 - voltar")
 
-# Chama a função
+def sair():
+    print("Saindo ...")
 
+def opcao_invalida():
+    print("Opção inválida. Por favor, tente novamente.")
 
 def main():
-    opcoes()
-    while True:
-        try:
-            opcao = int(input("opcao: "))
-        except:
-            print("opcao invalida")
-            continue
-        if opcao == 1:
-            gerenciar_animes()
-            break
-        elif opcao == 2:
-            verificar_ep_db()
-        elif opcao == 3:
-            listar_novos_ep_db()
-        elif opcao == 4:
-            dowload_novos_ep_db()
-        elif opcao == 5:
-            listar_ep_anime_db()
-        elif opcao == 6:
-            listar_dowloads_db()
-        elif opcao == 7:
-            criar_backup()
-        elif opcao == 0:
-            break
-        opcoes()
+    opcoes()  # Exibe as opções
+
+    opcao_map = {
+        1: gerenciar_animes,
+        2: verificar_ep_db,
+        3: listar_novos_ep_db,
+        4: dowload_novos_ep_db,
+        5: listar_ep_anime_db,
+        6: listar_dowloads,
+        7: criar_backup,
+        0: sair
+    }
+
+    try:
         opcao = int(input("opcao: "))
+        # Obtém a função correspondente à opção escolhida ou opcao_invalida() se não encontrar
+        acao = opcao_map.get(opcao, opcao_invalida)
+        acao()  # Executa a função
+        if opcao != 0:  # Se a opção não for sair, continua executando
+            main()
+    except ValueError:
+        print("Opção inválida. Por favor, digite um número.")
+        main()
+
 
 def gerenciar_animes():
-    opcao = 1
-    while True:
-        printar_banco_db()
-        opcoes_gerenciar_animes()
-        try:
-            opcao = int(input("opcao: "))
-        except:
-            print("opcao invalida")
-            continue
-        if opcao == 1:
-            adicionar_anime_db()
-        elif opcao == 2:
-            remover_anime_db()
-        elif opcao == 3:
-            editar_anime_db()
-        elif opcao == 0:
-            main()
-            break   
-        else:
-            print("opcao invalida")
+    printar_banco_db()
+    opcoes_gerenciar_animes()
+
+    opcao_map = {
+        1: adicionar_anime,
+        2: remover_anime_db,
+        3: editar_anime_db,
+        0: sair
+    }
+
+    try:
+        opcao = int(input("opcao: "))
+        acao = opcao_map.get(opcao, opcao_invalida)
+        acao()
+        if opcao != 0:
+            gerenciar_animes()
+    except ValueError:
+        print("Opção inválida. Por favor, digite um número.")
+        gerenciar_animes()
+
 listar_novos_ep_db()
 main()
 
