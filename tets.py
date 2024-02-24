@@ -5,28 +5,28 @@ from operacoes_anime import  adicionar_anime, remover_anime_db, listar_ep_anime_
 
 
 def opcoes():
-    print("opcoes:")
-    print("1 - Gerenciar animes")
-    print("2 - verificar novos episodios")
-    print("3 - lista episodios")
-    print("4 - baixar episodio")
-    print("5 - lista todos episodios anime")
-    print("6 - visualizar dowloads")
-    print("7 - criar backup")
-    print("0 - sair")
+    print('opcoes:')
+    print('1 - Gerenciar animes')
+    print('2 - verificar novos episodios')
+    print('3 - lista episodios')
+    print('4 - baixar episodio')
+    print('5 - lista todos episodios anime')
+    print('6 - visualizar dowloads')
+    print('7 - criar backup')
+    print('0 - sair')
 
 def opcoes_gerenciar_animes():
-    print("opcoes:")
-    print("1 - adicionar anime")
-    print("2 - remover anime")
-    print("3 - editar anime")
-    print("0 - voltar")
+    print('opcoes:')
+    print('1 - adicionar anime')
+    print('2 - remover anime')
+    print('3 - editar anime')
+    print('0 - voltar')
 
 def sair():
-    print("Saindo ...")
+    print('Saindo ...')
 
 def opcao_invalida():
-    print("Opção inválida. Por favor, tente novamente.")
+    print('Opção inválida. Por favor, tente novamente.')
 
 def main():
     opcoes()  # Exibe as opções
@@ -43,14 +43,14 @@ def main():
     }
 
     try:
-        opcao = int(input("opcao: "))
+        opcao = int(input('opcao: '))
         # Obtém a função correspondente à opção escolhida ou opcao_invalida() se não encontrar
         acao = opcao_map.get(opcao, opcao_invalida)
         acao()  # Executa a função
         if opcao != 0:  # Se a opção não for sair, continua executando
             main()
     except ValueError:
-        print("Opção inválida. Por favor, digite um número.")
+        print('Opção inválida. Por favor, digite um número.')
         main()
 
 
@@ -66,13 +66,13 @@ def gerenciar_animes():
     }
 
     try:
-        opcao = int(input("opcao: "))
+        opcao = int(input('opcao: '))
         acao = opcao_map.get(opcao, opcao_invalida)
         acao()
         if opcao != 0:
             gerenciar_animes()
     except ValueError:
-        print("Opção inválida. Por favor, digite um número.")
+        print('Opção inválida. Por favor, digite um número.')
         gerenciar_animes()
 
 listar_novos_ep_db()
