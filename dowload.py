@@ -6,6 +6,7 @@ import subprocess
 import os
 import threading
 import re
+import sys
 
 def dowload_ep_db(name_anime ,link_dowload, id_anime, numero_ep, titulo_ep, callback_progresso=None):
     try:
@@ -59,10 +60,11 @@ def dowloads_asincronos(dowloads):
     threads = []
     display = {}
 
-    def printa_progresso(name, id_anime, numero_ep, progresso):
-        # print(f' Anime {name} Episódio {numero_ep} - {progresso}%')
+    def printa_progresso():
+        print("\033c", end='')  # Cuidado: isso limpa a tela.
+        print(display)
         for key, value in display.items():
-            print(f' Anime {name} Episódio {numero_ep} - {value["andamento"]}%')
+            print(f'Anime {value["name"]} Episódio {value["numero_ep"]} - {value["andamento"]:.2f}% completo')
 
     def atualiza_progresso(name, id_anime, numero_ep, progresso):
         duracao_video_match = re.search(r'Duration: (\d{2}):(\d{2}):(\d{2})\.\d{2},', progresso)
@@ -71,7 +73,7 @@ def dowloads_asincronos(dowloads):
             minutos = int(duracao_video_match.group(2))
             segundos = int(duracao_video_match.group(3))
             duracao_total_segundos = (horas * 3600) + (minutos * 60) + segundos
-            display[id_anime]= {'duracao': duracao_total_segundos, 'andamento': 0, 'name': name, 'numero_ep': numero_ep}
+            display[str(id_anime) + numero_ep]= {'duracao': duracao_total_segundos, 'andamento': 0, 'name': name, 'numero_ep': numero_ep}
 
         tempo_match = re.search(r'time=(\d{2}):(\d{2}):(\d{2})\.\d{2}', progresso)
         if tempo_match:
@@ -79,12 +81,12 @@ def dowloads_asincronos(dowloads):
             minutos = int(tempo_match.group(2))
             segundos = int(tempo_match.group(3))
             duracao_total_segundos = (horas * 3600) + (minutos * 60) + segundos
-            if duracao_total_segundos > 0:
-                display[id_anime]['andamento']= duracao_total_segundos / display[id_anime]['duracao'] * 100
-                printa_progresso(name, id_anime, numero_ep, duracao_total_segundos / display[id_anime]['duracao'] * 100)
+            if duracao_total_segundos > 0 and duracao_total_segundos- duracao_total_segundos / display[str(id_anime)+numero_ep]['duracao'] * 100 >= 5:
+                display[str(id_anime)+numero_ep]['andamento']= duracao_total_segundos / display[str(id_anime)+numero_ep]['duracao'] * 100
+                display[str(id_anime)+numero_ep]['name']= name
+                display[str(id_anime)+numero_ep]['numero_ep']= numero_ep
+                printa_progresso()
 
-        # if re.match(r'^size=', progresso):
-        #     print(f'Progresso do download: Anime {id_anime} Episódio {numero_ep} - {progresso}')
 
     dowloads_db = listar_todos_dowloads()
 
