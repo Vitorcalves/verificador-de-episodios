@@ -100,28 +100,47 @@ def assistir_ep_anime_db(link_dowload, numero_ep, id_anime):
         print('falha na conexao')     
 
 def listar_dowloads():
-            dowloads = listar_dowloads_db()
-            for dowload in dowloads:
-                print(dowload['id_dowloads'])
-                print(dowload['id_anime'])
-                print(dowload['name_anime'])
-                print(dowload['numero_ep'])
-                print(dowload['titulo_ep'])
-                print('********************')
-            print('digite o id do dowload')
-            id = input()
+    while True:
+        dowloads = listar_dowloads_db()
+        cont = 0
+        for dowload in dowloads:
+            print(f'ID -  {cont}')
+            print(f'Nome - {dowload["name_anime"]}')
+            print(f'Numero EP - {dowload["numero_ep"]}')
+            print(f'Titulo EP - {dowload["titulo_ep"]}')
+            print(f'ID EP - {dowload["id_dowloads"]}')
+            print('********************')
+            cont += 1
+        print('digite o id do dowload')
+        try:
+            id = int(input())
+        except:
+            print('id invalido')
+            break
+        if id > 0 or id <= len(dowloads):
+            try:
+                apisodio = dowloads[id]
+            except:
+                print('id invalido segundo try')
+                continue
             print('deseja assistir ou apagar? 1 - assistir, 2 - apagar 0 - cancelar')
             opcao = int(input())
             if opcao == 1:
-                for dowload in dowloads:
-                    if dowload['id_dowloads'] == id:
-                        caminho = '/home/vitor/dowloads_animes/' + id + '.mp4'
-                        subprocess.run(['vlc', caminho])
-                        atualizar_ep_anime_db(dowload['id_anime'], dowload['numero_ep'])
+                caminho = '/home/vitor/dowloads_animes/' + apisodio['id_dowloads'] + '.mp4'
+                subprocess.run(['vlc', caminho])
+                atualizar_ep_anime_db(apisodio['id_anime'], apisodio['numero_ep'])
+                print('deseja apagar o dowload? 1 - sim, 2 - nao')
+                opcao = int(input())
+                if opcao == 1:
+                    apagar_dowloads(apisodio['id_dowloads'])
+                else:
+                    print('cancelado')
+                    break
             elif opcao == 2:
-                apagar_dowloads(id)
+                apagar_dowloads(apisodio['id_dowloads'])
             else:
                 print('cancelado')
+                break
 
 def verificar_ep_db():
     animes = listar_animes_db()
