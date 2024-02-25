@@ -63,7 +63,7 @@ def listar_dowloads_db():
         return
     with conexao:
         with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute('SELECT * FROM dowloads JOIN anime ON dowloads.id_anime = anime.id_anime')
+            cursor.execute('SELECT * FROM dowloads JOIN anime ON dowloads.id_anime = anime.id_anime ORDER BY dowloads.id_anime, dowloads.numero_ep ASC')
             dowloads = cursor.fetchall()
             return dowloads
     conexao.close()

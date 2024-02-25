@@ -23,7 +23,6 @@ def dowload_ep_db(name_anime ,link_dowload, id_anime, numero_ep, titulo_ep, call
                 file.write(data)
             
             comando_ffmpeg = ["ffmpeg", "-protocol_whitelist", "file,https,tcp,tls,crypto", "-i", caminho, "-c", "copy", caminho_mp4]
-            print(f'dowload iniciado {id_anime}')
             processo = subprocess.Popen(comando_ffmpeg, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             
             while True:
@@ -35,8 +34,6 @@ def dowload_ep_db(name_anime ,link_dowload, id_anime, numero_ep, titulo_ep, call
                     callback_progresso(name_anime ,id_anime, numero_ep, output)
             
             rc = processo.poll()
-            print(rc)        
-            print(f'Download concluído {id_anime}')
             conexao = conectar_db()
             if conexao == None:
                 print('falha na conexao com banco')
@@ -62,7 +59,6 @@ def dowloads_asincronos(dowloads):
 
     def printa_progresso():
         print("\033c", end='')  # Cuidado: isso limpa a tela.
-        print(display)
         for key, value in display.items():
             print(f'Anime {value["name"]} Episódio {value["numero_ep"]} - {value["andamento"]:.2f}% completo')
 
@@ -81,11 +77,8 @@ def dowloads_asincronos(dowloads):
             minutos = int(tempo_match.group(2))
             segundos = int(tempo_match.group(3))
             duracao_total_segundos = (horas * 3600) + (minutos * 60) + segundos
-            if duracao_total_segundos > 0 and duracao_total_segundos- duracao_total_segundos / display[str(id_anime)+numero_ep]['duracao'] * 100 >= 5:
-                display[str(id_anime)+numero_ep]['andamento']= duracao_total_segundos / display[str(id_anime)+numero_ep]['duracao'] * 100
-                display[str(id_anime)+numero_ep]['name']= name
-                display[str(id_anime)+numero_ep]['numero_ep']= numero_ep
-                printa_progresso()
+            display[str(id_anime)+numero_ep]['andamento']= duracao_total_segundos / display[str(id_anime)+numero_ep]['duracao'] * 100
+            printa_progresso()
 
 
     dowloads_db = listar_todos_dowloads()
