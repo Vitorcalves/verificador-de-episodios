@@ -18,13 +18,14 @@ def conectar_db():
         print(error)
         return None  
 
-def inserir_anime_db(nome, ultimo_episodio, plataforma, id_externo):
+def inserir_anime_db(nome, plataforma, id_externo, slug_serie, ultimo_episodio):
+    conexao = conectar_db()
     if conexao == None:
         print('falha na conexao com banco')
         return
     with conexao:
         with conexao.cursor() as cursor:
-            cursor.execute('INSERT INTO anime (name_anime, ultimo_ep, plataforma, id_externo) VALUES (%s, %s, %s, %s)', (nome, ultimo_episodio, plataforma, id_externo))
+            cursor.execute('INSERT INTO anime (name_anime, ultimo_ep, plataforma, id_externo, slug_serie) VALUES (%s, %s, %s, %s, %s)', (nome, ultimo_episodio, plataforma, id_externo, slug_serie))
     conexao.close()
 
 def listar_animes_db():
