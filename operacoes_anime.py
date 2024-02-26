@@ -17,13 +17,13 @@ def adicionar_anime():
     id_externo = int(input())
     print('digite o id da plataforma')
     plataforma = int(input())
-    print('possibilidade player? 1 - sim, 2 - nao')
-    opcao = int(input())
+    print('slug da serie')
+    slug_serie = input()
     print('digite o numero do ultimo episodio ou deixe em branco e sera considerado 0')
     ultimo_episodio = input()
     if ultimo_episodio == '':
         ultimo_episodio = '000'
-    inserir_anime_db(nome, ultimo_episodio, plataforma, id_externo)
+    inserir_anime_db(nome, plataforma, id_externo, slug_serie, ultimo_episodio)
 
 def remover_anime_db():
     conexao = conectar_db()
@@ -135,7 +135,6 @@ def listar_dowloads():
                     apagar_dowloads(apisodio['id_dowloads'])
                 else:
                     print('cancelado')
-                    break
             elif opcao == 2:
                 apagar_dowloads(apisodio['id_dowloads'])
             else:

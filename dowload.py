@@ -131,5 +131,6 @@ def dowload_novos_ep_db():
                     print('##############################')
             if len(ep_dowload) > 0:
                 dowloads_asincronos(ep_dowload)
+                subprocess.run(['stty', 'sane'])
                 print('dowloads realizados')
     conexao.close()
