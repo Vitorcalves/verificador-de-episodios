@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from dowload import dowload_novos_ep_db
+from dowload import dowload_novos_ep_db, excluir_all_dowload
 from acessorios import criar_backup, printar_banco_db
 from operacoes_anime import  adicionar_anime, remover_anime_db, listar_ep_anime_db, listar_dowloads, verificar_ep_db, listar_novos_ep_db, editar_anime_db
 
@@ -13,6 +13,7 @@ def opcoes():
     print('5 - lista todos episodios anime')
     print('6 - visualizar dowloads')
     print('7 - criar backup')
+    print('8 - excluir todos dowloads')
     print('0 - sair')
 
 def opcoes_gerenciar_animes():
@@ -39,6 +40,7 @@ def main():
         5: listar_ep_anime_db,
         6: listar_dowloads,
         7: criar_backup,
+        8: excluir_all_dowload,
         0: sair
     }
 

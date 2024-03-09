@@ -1,4 +1,4 @@
-from db import conectar_db
+from db import conectar_db, ler_dados 
 from psycopg2.extras import RealDictCursor
 def migrar_db():
     store = ler_dados()

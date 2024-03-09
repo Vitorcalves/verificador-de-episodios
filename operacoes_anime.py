@@ -1,13 +1,10 @@
 from dowload import dowload_ep_db
-from acessorios import printar_banco_db
 import requests
 import uuid
 import subprocess
 import os
-from psycopg2.extras import RealDictCursor
-import re
 
-from db import ler_dados, escrever_dados, conectar_db, inserir_anime_db, listar_animes_db, atualizar_ep_anime_db, listar_dowloads_db
+from db import conectar_db, inserir_anime_db, listar_animes_db, atualizar_ep_anime_db, listar_dowloads_db
 
 def adicionar_anime():
     print('adicionar anime')
@@ -33,8 +30,6 @@ def remover_anime_db():
     with conexao:
         with conexao.cursor() as cursor:
             print('remover anime')
-            cursor.execute('SELECT id_anime, name_anime FROM anime WHERE ativo = true')
-            animes = cursor.fetchall()
             print('digite o id do anime')
             id = int(input())
             cursor.execute('UPDATE anime SET ativo = false WHERE id_anime = %s', (id,))
@@ -91,7 +86,6 @@ def assistir_ep_anime_db(link_dowload, numero_ep, id_anime):
         data = bJson.text
         id = str(uuid.uuid4())
         caminho = '/tmp/' + id + '.m3u8'
-        caminho_mp4 = '/tmp/' + id + '.mp4'
         with open(caminho, 'w') as file:
             file.write(data)
         subprocess.run(['vlc', caminho])

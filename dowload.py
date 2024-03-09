@@ -11,7 +11,7 @@ import sys
 def dowload_ep_db(name_anime ,link_dowload, id_anime, numero_ep, titulo_ep, callback_progresso=None):
     try:
         heder = {'Referer': 'https://www.anroll.net/'}
-        
+       
         bJson = requests.get(link_dowload, headers=heder)
         if bJson.status_code == 200:
             
@@ -33,7 +33,6 @@ def dowload_ep_db(name_anime ,link_dowload, id_anime, numero_ep, titulo_ep, call
                 elif callback_progresso:
                     callback_progresso(name_anime ,id_anime, numero_ep, output)
             
-            rc = processo.poll()
             conexao = conectar_db()
             if conexao == None:
                 print('falha na conexao com banco')
@@ -134,3 +133,16 @@ def dowload_novos_ep_db():
                 subprocess.run(['stty', 'sane'])
                 print('dowloads realizados')
     conexao.close()
+
+def excluir_all_dowload():
+    conexao = conectar_db()
+    if conexao == None:
+        print('falha na conexao com banco')
+        return
+    with conexao:
+        with conexao.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute('DELETE FROM dowloads')
+    conexao.close()
+    os.system('rm /home/vitor/dowloads_animes/*')
+    print('dowloads excluidos')
+
